@@ -1,4 +1,4 @@
-const Field = require('./Field');
+const Field = require('./field');
 
 const num0To12 = [
   '0',
