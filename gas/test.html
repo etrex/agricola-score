@@ -29,7 +29,7 @@
     <script>
         // GAS Web App URL 應該類似：
         // https://script.google.com/macros/s/YOUR-SCRIPT-ID/exec
-        const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycby_iOAoO5kE_RwL8BwYUDNnEog0S2iW3wQ7RZLk6Xd352B-VyCVczzG6stUNkK-6Ds8/exec';
+        const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyNqtxAUd5bidBpEW0xeR0k-ddzZqjxHyY2zs-EHk4PEgfDLYU9ot-01ynMvvJDMjIu/exec';
         
         function addMessage(text, isSent, isError = false) {
             const conv = document.getElementById('conversation');
@@ -100,10 +100,27 @@
                 addMessage('發送請求：', false);
                 addMessage(payload, false);
 
-                let response;
+                // 直接使用 JSONP 方式
+                const data = await sendMessageWithJSONP(text);
+                addMessage('收到回應：', false);
+                addMessage(data, false);
+                
+                if (data.messages) {
+                    data.messages.forEach(msg => {
+                        if (typeof msg === 'object') {
+                            addMessage(msg, false);
+                        } else {
+                            addMessage(msg.toString(), false);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage(`錯誤：${error.message}`, false, true);
+                
+                // 如果 JSONP 失敗，嘗試使用 fetch
                 try {
-                    // 先嘗試使用 fetch
-                    response = await fetch(WEBHOOK_URL, {
+                    const response = await fetch(WEBHOOK_URL, {
                         method: 'POST',
                         mode: 'cors',
                         cache: 'no-cache',
@@ -115,37 +132,28 @@
                         redirect: 'follow',
                         body: JSON.stringify(payload)
                     });
-                } catch (fetchError) {
-                    // 如果 fetch 失敗，嘗試使用 JSONP
-                    console.log('Fetch 失敗，嘗試 JSONP:', fetchError);
-                    const data = await sendMessageWithJSONP(text);
-                    addMessage('收到回應（JSONP）：', false);
-                    addMessage(data, false);
-                    if (data.messages) {
-                        data.messages.forEach(msg => {
-                            addMessage(msg.text || '（收到 Flex Message）', false);
-                        });
-                    }
-                    return;
-                }
 
-                const responseText = await response.text();
-                addMessage('收到回應：', false);
-                
-                try {
-                    const data = JSON.parse(responseText);
-                    addMessage(data, false);
-                    if (data.messages) {
-                        data.messages.forEach(msg => {
-                            addMessage(msg.text || '（收到 Flex Message）', false);
-                        });
+                    const responseText = await response.text();
+                    addMessage('收到 POST 回應：', false);
+                    
+                    try {
+                        const data = JSON.parse(responseText);
+                        addMessage(data, false);
+                        if (data.messages) {
+                            data.messages.forEach(msg => {
+                                if (typeof msg === 'object') {
+                                    addMessage(msg, false);
+                                } else {
+                                    addMessage(msg.toString(), false);
+                                }
+                            });
+                        }
+                    } catch (parseError) {
+                        addMessage(`回應不是有效的 JSON: ${responseText}`, false, true);
                     }
-                } catch (parseError) {
-                    addMessage(`回應不是有效的 JSON: ${responseText}`, false, true);
+                } catch (fetchError) {
+                    addMessage(`POST 請求也失敗：${fetchError.message}`, false, true);
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                addMessage(`錯誤：${error.message}`, false, true);
             }
         }
 

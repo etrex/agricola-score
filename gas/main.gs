@@ -21,15 +21,22 @@ function doPost(e) {
   const output = ContentService.createTextOutput();
   output.setMimeType(ContentService.MimeType.JSON);
   output.setHeader('Access-Control-Allow-Origin', '*');
+  output.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
   try {
+    // 記錄接收到的內容
+    console.log('Received POST data:', e.postData.contents);
+    
     // 解析請求內容
     const data = JSON.parse(e.postData.contents);
     const event = data.events[0];
     
     // 只處理文字訊息
     if (event.type !== 'message' || event.message.type !== 'text') {
-      return output.setContent(JSON.stringify({ success: true }));
+      const response = { success: true };
+      console.log('Non-text message response:', response);
+      return output.setContent(JSON.stringify(response));
     }
 
     const userId = event.source.userId;
@@ -37,24 +44,34 @@ function doPost(e) {
     
     // 取得使用者狀態
     const state = getState(userId);
+    console.log('User state:', state);
     
     // 處理訊息
     const response = handleMessage(state, message, userId);
+    console.log('Handler response:', response);
     
     // 發送 LINE 訊息
     if (event.replyToken !== 'test-reply-token') {
       sendLineMessage(event.replyToken, [response]);
-      return output.setContent(JSON.stringify({ success: true }));
+      const result = { success: true };
+      console.log('Production mode response:', result);
+      return output.setContent(JSON.stringify(result));
     } else {
       // 測試模式：直接回傳訊息內容
-      return output.setContent(JSON.stringify({
+      const result = {
         success: true,
         messages: [response]
-      }));
+      };
+      console.log('Test mode response:', result);
+      return output.setContent(JSON.stringify(result));
     }
   } catch (error) {
-    console.error('處理請求失敗:', error);
-    return output.setContent(JSON.stringify({ error: error.message }));
+    console.error('處理請求失敗:', error.stack);
+    const errorResponse = { 
+      error: error.message,
+      stack: error.stack
+    };
+    return output.setContent(JSON.stringify(errorResponse));
   }
 }
 
