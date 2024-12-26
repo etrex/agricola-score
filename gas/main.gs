@@ -100,4 +100,48 @@ function handleMessage(state, message, userId) {
   
   // 答案無效，重新問同一個問題
   return currentField.prompt();
+}
+
+/**
+ * 處理 GET 請求（用於 JSONP）
+ */
+function doGet(e) {
+  const output = ContentService.createTextOutput();
+  output.setMimeType(ContentService.MimeType.JAVASCRIPT);
+  
+  try {
+    if (!e.parameter.payload) {
+      throw new Error('No payload provided');
+    }
+    
+    const data = JSON.parse(e.parameter.payload);
+    const event = data.events[0];
+    
+    // 只處理文字訊息
+    if (event.type !== 'message' || event.message.type !== 'text') {
+      const response = { success: true };
+      return output.setContent(`${e.parameter.callback}(${JSON.stringify(response)})`);
+    }
+
+    const userId = event.source.userId;
+    const message = event.message.text;
+    
+    // 取得使用者狀態
+    const state = getState(userId);
+    
+    // 處理訊息
+    const response = handleMessage(state, message, userId);
+    
+    // 測試模式回傳
+    const result = {
+      success: true,
+      messages: [response]
+    };
+    
+    return output.setContent(`${e.parameter.callback}(${JSON.stringify(result)})`);
+  } catch (error) {
+    console.error('處理請求失敗:', error);
+    const errorResponse = { error: error.message };
+    return output.setContent(`${e.parameter.callback}(${JSON.stringify(errorResponse)})`);
+  }
 } 
