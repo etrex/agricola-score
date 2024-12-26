@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>農家樂計分機器人測試</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .message { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .sent { background: #e9ecef; margin-left: 20%; }
+        .received { background: #d4edda; margin-right: 20%; }
+        .error { background: #f8d7da; }
+        #messageInput { width: 70%; padding: 5px; }
+        button { padding: 5px 10px; }
+        #conversation { margin: 20px 0; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>農家樂計分機器人測試介面</h1>
+    
+    <div>
+        <input type="text" id="messageInput" placeholder="輸入訊息">
+        <button onclick="sendMessage()">發送</button>
+        <button onclick="startScoring()">開始計分</button>
+    </div>
+
+    <div id="conversation"></div>
+
+    <script>
+        // GAS Web App URL 應該類似：
+        // https://script.google.com/macros/s/YOUR-SCRIPT-ID/exec
+        const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycby_iOAoO5kE_RwL8BwYUDNnEog0S2iW3wQ7RZLk6Xd352B-VyCVczzG6stUNkK-6Ds8/exec';
+        
+        function addMessage(text, isSent, isError = false) {
+            const conv = document.getElementById('conversation');
+            const msg = document.createElement('div');
+            msg.className = `message ${isSent ? 'sent' : 'received'} ${isError ? 'error' : ''}`;
+            
+            // 如果是物件，以格式化的方式顯示
+            if (typeof text === 'object') {
+                const pre = document.createElement('pre');
+                pre.textContent = JSON.stringify(text, null, 2);
+                msg.appendChild(pre);
+            } else {
+                msg.textContent = text;
+            }
+            
+            conv.insertBefore(msg, conv.firstChild);
+        }
+
+        function generatePayload(text) {
+            return {
+                events: [{
+                    type: 'message',
+                    replyToken: 'test-reply-token',
+                    source: {
+                        userId: 'test-user-id',
+                        type: 'user'
+                    },
+                    message: {
+                        type: 'text',
+                        text: text
+                    }
+                }]
+            };
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            addMessage(text, true);
+            input.value = '';
+
+            try {
+                const payload = generatePayload(text);
+                addMessage('發送請求：', false);
+                addMessage(payload, false);
+
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const responseText = await response.text();
+                addMessage('收到回應：', false);
+                
+                try {
+                    const data = JSON.parse(responseText);
+                    addMessage(data, false);
+                    if (data.messages) {
+                        data.messages.forEach(msg => {
+                            addMessage(msg.text || '（收到 Flex Message）', false);
+                        });
+                    }
+                } catch (parseError) {
+                    addMessage(`回應不是有效的 JSON: ${responseText}`, false, true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage(`錯誤：${error.message}`, false, true);
+            }
+        }
+
+        function startScoring() {
+            document.getElementById('messageInput').value = '開始計分';
+            sendMessage();
+        }
+
+        // 按 Enter 發送訊息
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html> 
