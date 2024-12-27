@@ -7,41 +7,29 @@
 function generateFlexMessage(scores, total, params) {
   const scoreItems = Object.entries(scores).map(([key, score]) => {
     const field = fields.find(f => f.key === key);
-    const userInput = params[key];
     return {
       type: 'box',
       layout: 'horizontal',
+      margin: 'lg',
       contents: [
         {
           type: 'text',
-          text: field.name,
-          size: 'md',
-          color: '#555555',
-          flex: 6,
-          weight: 'regular'
+          text: `${field.name}: ${params[key]}`,
+          size: 'sm',
+          flex: 0
         },
         {
           type: 'text',
-          text: userInput,
-          size: 'md',
-          color: '#1DB446',
-          align: 'end',
-          weight: 'regular',
-          flex: 3
-        },
-        {
-          type: 'button',
+          text: '修改',
           action: {
             type: 'message',
-            label: '修改',
             text: field.name
           },
-          style: 'link',
-          height: 'sm',
+          color: '#225588',
+          margin: 'md',
           flex: 0
         }
-      ],
-      margin: 'lg'
+      ]
     };
   });
 
@@ -94,7 +82,6 @@ function generateFlexMessage(scores, total, params) {
                 text: '總分',
                 size: 'xl',
                 weight: 'bold',
-                flex: 6,
                 color: '#555555'
               },
               {
@@ -104,7 +91,7 @@ function generateFlexMessage(scores, total, params) {
                 weight: 'bold',
                 color: total >= 0 ? '#1DB446' : '#DD0000',
                 align: 'end',
-                flex: 3
+                margin: 'sm'
               }
             ]
           }

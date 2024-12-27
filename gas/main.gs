@@ -166,12 +166,16 @@ function handleError(error, isJsonP, callback) {
  * @returns {Object}
  */
 function doPost(e) {
-  try {
-    console.log('Received POST data:', e.postData.contents);
-    const event = parseLineEvent(e.postData.contents);
+  console.log('Received POST data:', e.postData.contents);
+  const event = parseLineEvent(e.postData.contents);
+  try {    
     const result = processMessage(event);
     return createCorsResponse(JSON.stringify(result));
   } catch (error) {
+    sendLineMessage(event.replyToken, [
+      {type: "text", text: error.message},
+      {type: "text", text: error.stack}
+    ]);
     return handleError(error, false);
   }
 }
