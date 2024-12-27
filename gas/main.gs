@@ -46,11 +46,71 @@ function parseLineEvent(contents) {
 }
 
 /**
+ * 建立按鈕
+ * @param {string} text 按鈕文字
+ * @returns {Object} 按鈕物件
+ */
+function button(text) {
+  return {
+    type: 'button',
+    action: {
+      type: 'message',
+      label: text,
+      text: text,
+    },
+    style: 'primary',
+    color: '#225588',
+    margin: 'md',
+  };
+}
+
+/**
+ * 建立歡迎訊息
+ * @returns {Object} Flex Message 物件
+ */
+function greeting() {
+  const text = '歡迎來到農家樂分數計算機，請點擊按鈕開始算分數：';
+  const bubble = {
+    type: 'bubble',
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'text',
+          text: text,
+          wrap: true,
+        },
+        button('幫我算分數'),
+      ],
+    },
+  };
+  return {
+    type: 'flex',
+    altText: text,
+    contents: bubble
+  };
+}
+
+/**
  * 處理訊息並產生回應
  * @param {Object} event LINE 事件物件
  * @returns {Object} 處理結果
  */
 function processMessage(event) {
+  // 處理 follow/join 事件
+  if (event.type === 'follow' || event.type === 'join') {
+    if (event.replyToken !== 'test-reply-token') {
+      sendLineMessage(event.replyToken, [greeting()]);
+      return { success: true };
+    } else {
+      return {
+        success: true,
+        messages: [greeting()]
+      };
+    }
+  }
+
   // 只處理文字訊息
   if (event.type !== 'message' || event.message.type !== 'text') {
     console.log('Non-text message received');
@@ -140,6 +200,11 @@ function doGet(e) {
  * @returns {Object} LINE 訊息物件
  */
 function handleMessage(state, message, userId) {
+  // 如果是一般訊息，也顯示歡迎訊息
+  if (message === '*') {
+    return greeting();
+  }
+
   // 如果是新的對話或重新開始
   if (message === '幫我算分數' || !state.form.waitingFor) {
     state.form = {
