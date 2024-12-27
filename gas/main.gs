@@ -3,12 +3,100 @@
  * @returns {Object}
  */
 function doOptions() {
-  return ContentService.createTextOutput('')
-    .setMimeType(ContentService.MimeType.TEXT)
+  return createCorsResponse('').setMimeType(ContentService.MimeType.TEXT);
+}
+
+/**
+ * 建立帶有 CORS 標頭的回應
+ * @param {string} content 回應內容
+ * @param {string} [mimeType=JSON] 回應的 MIME 類型
+ * @returns {Object} 回應物件
+ */
+function createCorsResponse(content, mimeType = ContentService.MimeType.JSON) {
+  return ContentService.createTextOutput(content)
+    .setMimeType(mimeType)
     .setHeader('Access-Control-Allow-Origin', '*')
     .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    .setHeader('Access-Control-Allow-Headers', 'Content-Type')
-    .setHeader('Access-Control-Max-Age', '86400');
+    .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
+/**
+ * 建立 JSONP 回應
+ * @param {Object} data 回應資料
+ * @param {string} callback 回調函數名稱
+ * @returns {Object} 回應物件
+ */
+function createJsonpResponse(data, callback) {
+  return ContentService.createTextOutput()
+    .setMimeType(ContentService.MimeType.JAVASCRIPT)
+    .setContent(`${callback}(${JSON.stringify(data)})`);
+}
+
+/**
+ * 解析 LINE 事件
+ * @param {string} contents 請求內容
+ * @returns {Object} LINE 事件物件
+ */
+function parseLineEvent(contents) {
+  const data = JSON.parse(contents);
+  if (!data.events || !data.events[0]) {
+    throw new Error('Invalid LINE event format');
+  }
+  return data.events[0];
+}
+
+/**
+ * 處理訊息並產生回應
+ * @param {Object} event LINE 事件物件
+ * @returns {Object} 處理結果
+ */
+function processMessage(event) {
+  // 只處理文字訊息
+  if (event.type !== 'message' || event.message.type !== 'text') {
+    console.log('Non-text message received');
+    return { success: true };
+  }
+
+  const userId = event.source.userId;
+  const message = event.message.text;
+  
+  // 取得使用者狀態
+  const state = getState(userId);
+  console.log('User state:', state);
+  
+  // 處理訊息
+  const response = handleMessage(state, message, userId);
+  console.log('Handler response:', response);
+  
+  // 根據是否為測試模式返回不同結果
+  if (event.replyToken !== 'test-reply-token') {
+    sendLineMessage(event.replyToken, [response]);
+    return { success: true };
+  } else {
+    return {
+      success: true,
+      messages: [response]
+    };
+  }
+}
+
+/**
+ * 處理錯誤並產生錯誤回應
+ * @param {Error} error 錯誤物件
+ * @param {boolean} isJsonP 是否為 JSONP 回應
+ * @param {string} [callback] JSONP 回調函數名稱
+ * @returns {Object} 錯誤回應
+ */
+function handleError(error, isJsonP, callback) {
+  console.error('處理請求失敗:', error.stack);
+  const errorResponse = { 
+    error: error.message,
+    stack: error.stack
+  };
+  
+  return isJsonP
+    ? createJsonpResponse(errorResponse, callback)
+    : createCorsResponse(JSON.stringify(errorResponse));
 }
 
 /**
@@ -17,61 +105,30 @@ function doOptions() {
  * @returns {Object}
  */
 function doPost(e) {
-  // 設定 CORS 標頭
-  const output = ContentService.createTextOutput();
-  output.setMimeType(ContentService.MimeType.JSON);
-  output.setHeader('Access-Control-Allow-Origin', '*');
-  output.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
   try {
-    // 記錄接收到的內容
     console.log('Received POST data:', e.postData.contents);
-    
-    // 解析請求內容
-    const data = JSON.parse(e.postData.contents);
-    const event = data.events[0];
-    
-    // 只處理文字訊息
-    if (event.type !== 'message' || event.message.type !== 'text') {
-      const response = { success: true };
-      console.log('Non-text message response:', response);
-      return output.setContent(JSON.stringify(response));
-    }
-
-    const userId = event.source.userId;
-    const message = event.message.text;
-    
-    // 取得使用者狀態
-    const state = getState(userId);
-    console.log('User state:', state);
-    
-    // 處理訊息
-    const response = handleMessage(state, message, userId);
-    console.log('Handler response:', response);
-    
-    // 發送 LINE 訊息
-    if (event.replyToken !== 'test-reply-token') {
-      sendLineMessage(event.replyToken, [response]);
-      const result = { success: true };
-      console.log('Production mode response:', result);
-      return output.setContent(JSON.stringify(result));
-    } else {
-      // 測試模式：直接回傳訊息內容
-      const result = {
-        success: true,
-        messages: [response]
-      };
-      console.log('Test mode response:', result);
-      return output.setContent(JSON.stringify(result));
-    }
+    const event = parseLineEvent(e.postData.contents);
+    const result = processMessage(event);
+    return createCorsResponse(JSON.stringify(result));
   } catch (error) {
-    console.error('處理請求失敗:', error.stack);
-    const errorResponse = { 
-      error: error.message,
-      stack: error.stack
-    };
-    return output.setContent(JSON.stringify(errorResponse));
+    return handleError(error, false);
+  }
+}
+
+/**
+ * 處理 GET 請求（用於 JSONP）
+ */
+function doGet(e) {
+  try {
+    if (!e.parameter.payload) {
+      throw new Error('No payload provided');
+    }
+    
+    const event = parseLineEvent(e.parameter.payload);
+    const result = processMessage(event);
+    return createJsonpResponse(result, e.parameter.callback);
+  } catch (error) {
+    return handleError(error, true, e.parameter.callback);
   }
 }
 
@@ -117,48 +174,4 @@ function handleMessage(state, message, userId) {
   
   // 答案無效，重新問同一個問題
   return currentField.prompt();
-}
-
-/**
- * 處理 GET 請求（用於 JSONP）
- */
-function doGet(e) {
-  const output = ContentService.createTextOutput();
-  output.setMimeType(ContentService.MimeType.JAVASCRIPT);
-  
-  try {
-    if (!e.parameter.payload) {
-      throw new Error('No payload provided');
-    }
-    
-    const data = JSON.parse(e.parameter.payload);
-    const event = data.events[0];
-    
-    // 只處理文字訊息
-    if (event.type !== 'message' || event.message.type !== 'text') {
-      const response = { success: true };
-      return output.setContent(`${e.parameter.callback}(${JSON.stringify(response)})`);
-    }
-
-    const userId = event.source.userId;
-    const message = event.message.text;
-    
-    // 取得使用者狀態
-    const state = getState(userId);
-    
-    // 處理訊息
-    const response = handleMessage(state, message, userId);
-    
-    // 測試模式回傳
-    const result = {
-      success: true,
-      messages: [response]
-    };
-    
-    return output.setContent(`${e.parameter.callback}(${JSON.stringify(result)})`);
-  } catch (error) {
-    console.error('處理請求失敗:', error);
-    const errorResponse = { error: error.message };
-    return output.setContent(`${e.parameter.callback}(${JSON.stringify(errorResponse)})`);
-  }
 } 
