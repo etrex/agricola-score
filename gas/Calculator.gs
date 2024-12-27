@@ -22,64 +22,75 @@ const scoreTable = {
 };
 
 /**
- * 計算得分
- * @param {Object} params 所有欄位的值
- * @returns {Object} 計算結果
+ * 計算單個欄位的分數
+ * @param {string} key 欄位的鍵值
+ * @param {string} value 用戶輸入的值
+ * @returns {number} 計算後的分數
+ */
+function calculateScore(key, value) {
+  let score = 0;
+  
+  switch (key) {
+    case 'field':
+    case 'pasture':
+    case 'grain':
+    case 'vegetable':
+    case 'sheep':
+    case 'wildBoar':
+    case 'cattle':
+      const index = parseInt(value);
+      score = index < scoreTable[key].length ? scoreTable[key][index] : scoreTable[key][scoreTable[key].length - 1];
+      break;
+      
+    case 'emptyFarmyard':
+      score = parseInt(value) * scoreTable[key];
+      break;
+      
+    case 'fencedStable':
+      score = parseInt(value) * scoreTable[key];
+      break;
+      
+    case 'roomStyle':
+      score = scoreTable[key][value] || 0;
+      break;
+      
+    case 'room':
+      score = parseInt(value);
+      break;
+      
+    case 'family':
+      score = parseInt(value) * scoreTable[key];
+      break;
+      
+    case 'beggingCard':
+      score = parseInt(value) * scoreTable[key];
+      break;
+      
+    case 'bonus':
+    case 'otherBonus':
+      score = parseInt(value);
+      break;
+  }
+  
+  return score;
+}
+
+/**
+ * 計算分數結果
+ * @param {Object} params 用戶輸入的參數
+ * @returns {Object} Flex Message 物件
  */
 function calculateResult(params) {
-  let scores = {};
+  const scores = {};
   let total = 0;
-  
-  // 計算每個項目的分數
-  Object.keys(params).forEach(key => {
-    let value = params[key];
-    let score = 0;
-    
-    switch (key) {
-      case 'field':
-      case 'pasture':
-      case 'grain':
-      case 'vegetable':
-      case 'sheep':
-      case 'wildBoar':
-      case 'cattle':
-        const index = parseInt(value);
-        score = index < scoreTable[key].length ? scoreTable[key][index] : scoreTable[key][scoreTable[key].length - 1];
-        break;
-        
-      case 'emptyFarmyard':
-        score = parseInt(value) * scoreTable[key];
-        break;
-        
-      case 'fencedStable':
-        score = parseInt(value) * scoreTable[key];
-        break;
-        
-      case 'roomStyle':
-        score = scoreTable[key][value] || 0;
-        break;
-        
-      case 'room':
-        score = parseInt(value);
-        break;
-        
-      case 'family':
-        score = parseInt(value) * scoreTable[key];
-        break;
-        
-      case 'beggingCard':
-        score = parseInt(value) * scoreTable[key];
-        break;
-        
-      case 'bonus':
-      case 'otherBonus':
-        score = parseInt(value);
-        break;
-    }
-    
+
+  // 計算各項分數
+  Object.entries(params).forEach(([key, value]) => {
+    const score = calculateScore(key, value);
     scores[key] = score;
     total += score;
   });
-  
-  return generateFlexMessage(scores, total);
+
+  // 生成結果訊息
+  return generateFlexMessage(scores, total, params);
 } 

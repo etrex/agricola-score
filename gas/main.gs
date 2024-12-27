@@ -82,6 +82,7 @@ function greeting() {
           wrap: true,
         },
         button('幫我算分數'),
+        button('推薦給好友'),
       ],
     },
   };
@@ -200,15 +201,36 @@ function doGet(e) {
  * @returns {Object} LINE 訊息物件
  */
 function handleMessage(state, message, userId) {
+  // 初始化 state.form 如果不存在
+  state.form = state.form || { params: {} };
+
   // 如果是一般訊息，也顯示歡迎訊息
   if (message === '*') {
     return greeting();
   }
 
+  // 如果是推薦給好友的請求
+  if (message === '推薦給好友') {
+    return greeting();
+  }
+
+  // 如果是修改特定欄位的請求
+  const fieldUpdateValidator = /玩家數|田數|柵欄圈地數|小麥數|蔬菜數|羊數|豬數|牛數|空地數|柵欄圈地內馬廄數|房間數|房間類型|人口數|乞討卡|主要發展卡的的總得分|職業卡和次要發展卡的總得分/;
+  if (fieldUpdateValidator.test(message)) {
+    const field = fields.find(f => f.name === message);
+    if (field) {
+      // 清除該欄位的值
+      delete state.form.params[field.key];
+      // 設定下一個要等待輸入的欄位
+      state.form.waitingFor = field.key;
+      setState(userId, state);
+      return field.prompt();
+    }
+  }
+
   // 如果是新的對話或重新開始
   if (message === '幫我算分數' || !state.form.waitingFor) {
     state.form = {
-      path: null,
       params: {},
       waitingFor: fields[0].key
     };
@@ -222,19 +244,25 @@ function handleMessage(state, message, userId) {
     // 儲存答案
     state.form.params[currentField.key] = message;
     
-    // 找下一個問題
-    const currentIndex = fields.findIndex(f => f.key === state.form.waitingFor);
-    if (currentIndex >= fields.length - 1) {
-      // 所有問題都回答完了，計算結果
+    // 如果所有欄位都已填寫，顯示結果
+    if (Object.keys(state.form.params).length === fields.length) {
       const result = calculateResult(state.form.params);
-      clearState(userId);
+      setState(userId, state);
       return result;
     }
     
-    // 進入下一個問題
-    state.form.waitingFor = fields[currentIndex + 1].key;
-    setState(userId, state);
-    return fields[currentIndex + 1].prompt();
+    // 找到下一個未填寫的欄位
+    const nextField = fields.find(f => !state.form.params[f.key]);
+    if (nextField) {
+      state.form.waitingFor = nextField.key;
+      setState(userId, state);
+      return nextField.prompt();
+    } else {
+      // 所有欄位都已填寫，顯示結果
+      const result = calculateResult(state.form.params);
+      setState(userId, state);
+      return result;
+    }
   }
   
   // 答案無效，重新問同一個問題

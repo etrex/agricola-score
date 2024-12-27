@@ -4,9 +4,10 @@
  * @param {number} total 總分
  * @returns {Object} LINE Flex Message
  */
-function generateFlexMessage(scores, total) {
+function generateFlexMessage(scores, total, params) {
   const scoreItems = Object.entries(scores).map(([key, score]) => {
     const field = fields.find(f => f.key === key);
+    const userInput = params[key];
     return {
       type: 'box',
       layout: 'horizontal',
@@ -14,19 +15,33 @@ function generateFlexMessage(scores, total) {
         {
           type: 'text',
           text: field.name,
-          size: 'sm',
+          size: 'md',
           color: '#555555',
-          flex: 5
+          flex: 6,
+          weight: 'regular'
         },
         {
           type: 'text',
-          text: score.toString(),
-          size: 'sm',
-          color: score >= 0 ? '#111111' : '#DD0000',
+          text: userInput,
+          size: 'md',
+          color: '#1DB446',
           align: 'end',
-          flex: 2
+          weight: 'regular',
+          flex: 3
+        },
+        {
+          type: 'button',
+          action: {
+            type: 'message',
+            label: '修改',
+            text: field.name
+          },
+          style: 'link',
+          height: 'sm',
+          flex: 0
         }
-      ]
+      ],
+      margin: 'lg'
     };
   });
 
@@ -35,7 +50,8 @@ function generateFlexMessage(scores, total) {
     altText: '農家樂分數計算結果',
     contents: {
       type: 'bubble',
-      body: {
+      size: 'giga',
+      header: {
         type: 'box',
         layout: 'vertical',
         contents: [
@@ -44,49 +60,87 @@ function generateFlexMessage(scores, total) {
             text: '分數計算結果',
             weight: 'bold',
             color: '#1DB446',
-            size: 'lg'
-          },
-          {
-            type: 'separator',
-            margin: 'xxl'
-          },
+            size: 'xl',
+            align: 'center'
+          }
+        ],
+        backgroundColor: '#f6f6f6',
+        paddingTop: 'lg',
+        paddingBottom: 'lg'
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
           {
             type: 'box',
             layout: 'vertical',
-            margin: 'xxl',
-            spacing: 'sm',
-            contents: scoreItems
+            spacing: 'none',
+            contents: scoreItems,
+            margin: 'none'
           },
           {
             type: 'separator',
-            margin: 'xxl'
+            margin: 'xxl',
+            color: '#cccccc'
           },
           {
             type: 'box',
             layout: 'horizontal',
-            margin: 'md',
+            margin: 'xl',
             contents: [
               {
                 type: 'text',
                 text: '總分',
-                size: 'lg',
+                size: 'xl',
                 weight: 'bold',
-                flex: 5
+                flex: 6,
+                color: '#555555'
               },
               {
                 type: 'text',
                 text: total.toString(),
-                size: 'lg',
+                size: 'xl',
                 weight: 'bold',
-                color: total >= 0 ? '#111111' : '#DD0000',
+                color: total >= 0 ? '#1DB446' : '#DD0000',
                 align: 'end',
-                flex: 2
+                flex: 3
               }
             ]
           }
         ]
       },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: [
+          {
+            type: 'button',
+            style: 'primary',
+            color: '#1DB446',
+            action: {
+              type: 'message',
+              label: '再算一次',
+              text: '幫我算分數'
+            }
+          },
+          {
+            type: 'button',
+            style: 'secondary',
+            action: {
+              type: 'message',
+              label: '推薦給好友',
+              text: '推薦給好友'
+            }
+          }
+        ],
+        paddingAll: 'lg'
+      },
       styles: {
+        header: {
+          separator: false
+        },
         footer: {
           separator: true
         }
