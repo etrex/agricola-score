@@ -85,7 +85,7 @@ function processMessage(event) {
  * @param {Error} error 錯誤物件
  * @param {boolean} isJsonP 是否為 JSONP 回應
  * @param {string} [callback] JSONP 回調函數名稱
- * @returns {Object} 錯誤回應
+ * @returns {Object} 錯誤回���
  */
 function handleError(error, isJsonP, callback) {
   console.error('處理請求失敗:', error.stack);
@@ -141,7 +141,7 @@ function doGet(e) {
  */
 function handleMessage(state, message, userId) {
   // 如果是新的對話或重新開始
-  if (message === '開始計分' || !state.form.waitingFor) {
+  if (message === '幫我算分數' || !state.form.waitingFor) {
     state.form = {
       path: null,
       params: {},
