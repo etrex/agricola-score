@@ -85,7 +85,7 @@ function processMessage(event) {
  * @param {Error} error 錯誤物件
  * @param {boolean} isJsonP 是否為 JSONP 回應
  * @param {string} [callback] JSONP 回調函數名稱
- * @returns {Object} 錯誤回���
+ * @returns {Object} 錯誤回應
  */
 function handleError(error, isJsonP, callback) {
   console.error('處理請求失敗:', error.stack);
