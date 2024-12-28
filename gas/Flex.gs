@@ -5,8 +5,54 @@
  * @returns {Object} LINE Flex Message
  */
 function generateFlexMessage(scores, total, params) {
-  const scoreItems = Object.entries(scores).map(([key, score]) => {
+  const scoreItems = displayOrder.map(key => {
+    if (!(key in scores)) return null;
+    
     const field = fields.find(f => f.key === key);
+    
+    // 特別處理房子相關的欄位
+    if (key === 'roomStyle') {
+      const roomCount = parseInt(params['room']);
+      const houseScore = scoreTable[`room${params[key]}`][roomCount];
+      return {
+        type: 'box',
+        layout: 'horizontal',
+        margin: 'lg',
+        contents: [
+          {
+            type: 'text',
+            text: `房子: ${params[key]} ${params['room']}間`,
+            size: 'sm',
+            flex: 1
+          },
+          {
+            type: 'text',
+            text: houseScore.toString(),
+            size: 'sm',
+            color: houseScore >= 0 ? '#1DB446' : '#DD0000',
+            align: 'end',
+            flex: 0
+          },
+          {
+            type: 'text',
+            text: '修改',
+            action: {
+              type: 'message',
+              text: '修改房子'
+            },
+            color: '#225588',
+            margin: 'md',
+            flex: 0
+          }
+        ]
+      };
+    }
+    
+    // 跳過房間數欄位，因為已經在房子類型中顯示
+    if (key === 'room') {
+      return null;
+    }
+    
     return {
       type: 'box',
       layout: 'horizontal',
@@ -16,6 +62,14 @@ function generateFlexMessage(scores, total, params) {
           type: 'text',
           text: `${field.name}: ${params[key]}`,
           size: 'sm',
+          flex: 1
+        },
+        {
+          type: 'text',
+          text: scores[key].toString(),
+          size: 'sm',
+          color: scores[key] >= 0 ? '#1DB446' : '#DD0000',
+          align: 'end',
           flex: 0
         },
         {
@@ -31,7 +85,7 @@ function generateFlexMessage(scores, total, params) {
         }
       ]
     };
-  });
+  }).filter(item => item !== null);  // 過濾掉 null 項目
 
   return {
     type: 'flex',

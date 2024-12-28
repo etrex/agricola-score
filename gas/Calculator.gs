@@ -11,23 +11,41 @@ const scoreTable = {
   cattle: [-1, 1, 2, 2, 3, 3, 4, 4, 4],
   emptyFarmyard: -1,  // -1 point per empty farmyard
   fencedStable: 1,    // +1 point per fenced stable
-  roomStyle: {
-    '木屋': 0,
-    '磚屋': 1,
-    '石屋': 2
-  },
-  room: 0,           // points equal to number of rooms
+  room木屋: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  room磚屋: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+  room石屋: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28],
   family: 3,         // +3 points per family member
   beggingCard: -3    // -3 points per begging card
 };
 
 /**
+ * 顯示順序
+ */
+const displayOrder = [
+  'field',           // 田數
+  'pasture',         // 柵欄圈地數
+  'grain',           // 小麥數
+  'vegetable',       // 蔬菜數
+  'sheep',           // 羊數
+  'wildBoar',        // 豬數
+  'cattle',          // 牛數
+  'emptyFarmyard',   // 空地數
+  'fencedStable',    // 柵欄圈地內馬廄數
+  'roomStyle',       // 房子
+  'family',          // 人口數
+  'beggingCard',     // 乞討卡
+  'bonus',           // 主要發展卡的總得分
+  'otherBonus'       // 職業卡和次要發展卡的總得分
+];
+
+/**
  * 計算單個欄位的分數
  * @param {string} key 欄位的鍵值
  * @param {string} value 用戶輸入的值
+ * @param {Object} params 所有參數
  * @returns {number} 計算後的分數
  */
-function calculateScore(key, value) {
+function calculateScore(key, value, params) {
   let score = 0;
   
   switch (key) {
@@ -51,11 +69,12 @@ function calculateScore(key, value) {
       break;
       
     case 'roomStyle':
-      score = scoreTable[key][value] || 0;
+      const roomCount = parseInt(params['room']);
+      score = scoreTable[`room${value}`][roomCount];
       break;
       
     case 'room':
-      score = parseInt(value);
+      score = 0;
       break;
       
     case 'family':
@@ -84,11 +103,13 @@ function calculateResult(params) {
   const scores = {};
   let total = 0;
 
-  // 計算各項分數
-  Object.entries(params).forEach(([key, value]) => {
-    const score = calculateScore(key, value);
-    scores[key] = score;
-    total += score;
+  // 按照顯示順序計算各項分數
+  displayOrder.forEach(key => {
+    if (key in params) {
+      const score = calculateScore(key, params[key], params);
+      scores[key] = score;
+      total += score;
+    }
   });
 
   // 生成結果訊息

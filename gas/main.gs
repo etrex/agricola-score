@@ -94,6 +94,45 @@ function greeting() {
 }
 
 /**
+ * 建立推薦給好友的訊息
+ * @returns {Object} Flex Message 物件
+ */
+function recommendToFriends() {
+  const text = '請好友掃描下方 QRCode\n\n或點擊下方 QRCode 選擇好友';
+  const bubble = {
+    type: 'bubble',
+    size: 'giga',
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'text',
+          text: text,
+          wrap: true,
+        },
+        {
+          type: 'image',
+          url: 'https://qr-official.line.me/sid/L/313jqfxg.png',
+          size: 'full',
+          aspectRatio: '1:1',
+          aspectMode: 'cover',
+          action: {
+            type: 'uri',
+            uri: 'line://nv/recommendOA/@313jqfxg',
+          },
+        },
+      ],
+    },
+  };
+  return {
+    type: 'flex',
+    altText: text,
+    contents: bubble
+  };
+}
+
+/**
  * 處理訊息並產生回應
  * @param {Object} event LINE 事件物件
  * @returns {Object} 處理結果
@@ -215,7 +254,7 @@ function handleMessage(state, message, userId) {
 
   // 如果是推薦給好友的請求
   if (message === '推薦給好友') {
-    return greeting();
+    return recommendToFriends();
   }
 
   // 如果是修改特定欄位的請求
@@ -230,6 +269,18 @@ function handleMessage(state, message, userId) {
       setState(userId, state);
       return field.prompt();
     }
+  }
+
+  // 處理修改房子的請求
+  if (message === '修改房子') {
+    // 清除房子類型和房間數的值
+    delete state.form.params['roomStyle'];
+    delete state.form.params['room'];
+    // 設定下一個要等待輸入的欄位為房子類型
+    const roomStyleField = fields.find(f => f.key === 'roomStyle');
+    state.form.waitingFor = 'roomStyle';
+    setState(userId, state);
+    return roomStyleField.prompt();
   }
 
   // 如果是新的對話或重新開始
