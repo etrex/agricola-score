@@ -146,7 +146,9 @@ footer {
     transition: border-color 0.3s;
 }
 
-.author-info a:hover {
+.author-info a:hover,
+.author-info a:visited {
+    color: white;
     border-color: white;
 }
 
