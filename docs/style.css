@@ -181,7 +181,7 @@ footer {
 
 .main-nav {
     background-color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -220,10 +220,30 @@ footer {
     color: var(--text-color);
     text-decoration: none;
     transition: color 0.3s;
+    font-weight: 500;
 }
 
 .nav-right a:hover {
     color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+    .main-nav {
+        padding: 0.8rem 0;
+    }
+
+    .main-nav .container {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+    
+    .nav-right {
+        gap: 1.5rem;
+    }
+    
+    .nav-title {
+        font-size: 1.1rem;
+    }
 }
 
 .contact {
