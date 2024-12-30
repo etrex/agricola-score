@@ -177,4 +177,90 @@ footer {
     section {
         padding: 2rem 0;
     }
+}
+
+.main-nav {
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 1rem 0;
+}
+
+.main-nav .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.nav-logo {
+    width: 40px;
+    height: 40px;
+}
+
+.nav-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.nav-right {
+    display: flex;
+    gap: 2rem;
+}
+
+.nav-right a {
+    color: var(--text-color);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.nav-right a:hover {
+    color: var(--primary-color);
+}
+
+.contact {
+    background-color: white;
+    text-align: center;
+}
+
+.contact .container {
+    max-width: 800px;
+}
+
+.contact h2 {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.contact-text {
+    text-align: left;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.8;
+}
+
+.contact-text p {
+    margin-bottom: 1rem;
+}
+
+.contact-button {
+    margin-top: 3rem;
+}
+
+@media (max-width: 768px) {
+    .nav-right {
+        gap: 1rem;
+    }
+    
+    .nav-title {
+        font-size: 1rem;
+    }
 } 
