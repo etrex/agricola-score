@@ -78,7 +78,7 @@ class Flex
               text: '修改',
               action: {
                 type: 'message',
-                text: "修改#{field.name}"
+                text: field.name
               },
               color: '#225588',
               margin: 'md',
