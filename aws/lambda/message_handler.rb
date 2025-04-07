@@ -1,11 +1,13 @@
 require_relative 'fields'
 require_relative 'calculator'
+require_relative 'test_handler'
 
 class MessageHandler
   def initialize(line_client, dynamodb_client, table_name)
     @line_client = line_client
     @dynamodb_client = dynamodb_client
     @table_name = table_name
+    @test_handler = TestHandler.new(line_client)
   end
 
   def handle_message(event)
@@ -14,11 +16,36 @@ class MessageHandler
     
     return unless user_id && message
 
+    # 如果是測試指令，轉給 test_handler 處理
+    if message == 'test'
+      return @test_handler.handle_message(event)
+    end
+
     state = get_state(user_id)
     response = process_message(message, state)
     save_state(user_id, state)
 
-    @line_client.reply_message(event['replyToken'], response)
+    puts "========== Response Details =========="
+    puts "Response: #{response.to_json}"
+    puts "====================================="
+
+    begin
+      puts "========== Sending Response =========="
+      @line_client.reply_message(event['replyToken'], response)
+      puts "========== Response Sent ==========="
+    rescue Line::Bot::API::Error => e
+      puts "LINE API Error: #{e.message}"
+      puts "Error Class: #{e.class}"
+      puts "Error Response: #{e.response}"
+      puts "Error Response Body: #{e.response.body}" if e.response
+      raise
+    rescue StandardError => e
+      puts "Unexpected Error: #{e.message}"
+      puts "Error Class: #{e.class}"
+      puts "Backtrace:"
+      puts e.backtrace
+      raise
+    end
   end
 
   private
