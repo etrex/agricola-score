@@ -53,19 +53,39 @@ class CdkStack extends Stack {
       code: lambda.Code.fromAsset('../lambda'),
       environment: {
         DYNAMODB_TABLE: table.tableName,
-        LINE_CHANNEL_SECRET: ssm.StringParameter.valueFromLookup(this, '/agricola-score/line-channel-secret'),
-        LINE_CHANNEL_ACCESS_TOKEN: ssm.StringParameter.valueFromLookup(this, '/agricola-score/line-channel-access-token')
+        LINE_CHANNEL_SECRET_NAME: '/agricola-score/line-channel-secret',
+        LINE_CHANNEL_ACCESS_TOKEN_NAME: '/agricola-score/line-channel-access-token'
       },
-      logRetention: logs.RetentionDays.TWO_WEEKS
+      logRetention: logs.RetentionDays.TWO_WEEKS,
+      timeout: Duration.seconds(30),
+      memorySize: 2048
     });
 
     // Grant Lambda permissions to access DynamoDB
     table.grantReadWriteData(webhookHandler);
 
+    // Grant Lambda permissions to read SSM parameters
+    const secretArn = `arn:aws:ssm:${this.region}:${this.account}:parameter/agricola-score/*`;
+    webhookHandler.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['ssm:GetParameter'],
+      resources: [secretArn]
+    }));
+
     // Create or update API Gateway
     const api = new apigateway.RestApi(this, 'AgricolaScoreApi', {
       restApiName: 'agricola-score-api',
       cloudWatchRole: true,
+      deployOptions: {
+        accessLogDestination: new apigateway.LogGroupLogDestination(
+          new logs.LogGroup(this, 'ApiGatewayLogs', {
+            logGroupName: '/aws/apigateway/agricola-score-api',
+            retention: logs.RetentionDays.ONE_WEEK,
+            removalPolicy: RemovalPolicy.DESTROY
+          })
+        ),
+        accessLogFormat: apigateway.AccessLogFormat.jsonWithStandardFields()
+      },
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS
