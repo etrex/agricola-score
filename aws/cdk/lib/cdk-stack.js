@@ -64,7 +64,7 @@ class CdkStack extends Stack {
 
     // Create or update API Gateway
     const api = new apigateway.RestApi(this, 'AgricolaScoreApi', {
-      restApiName: 'agricola-score-api-v2',
+      restApiName: 'agricola-score-api',
       cloudWatchRole: true,
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
@@ -89,13 +89,7 @@ class CdkStack extends Stack {
     });
 
     // Add throttling
-    const plan = api.addUsagePlan('UsagePlan', {
-      name: 'Standard',
-      throttle: {
-        rateLimit: 100,
-        burstLimit: 200
-      }
-    });
+
 
     // CloudWatch Alarms
     new cloudwatch.Alarm(this, 'LambdaDurationAlarm', {
