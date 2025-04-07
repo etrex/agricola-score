@@ -61,3 +61,32 @@ typings/
 
 # dotenv environment variables file
 .env
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out/
+
+# CDK context and history
+cdk.context.json
+.cdk.staging/
+
+# AWS SAM CLI build output
+.aws-sam/
+
+# Local development
+*.local
+*.local.*
+
+# Ruby
+.ruby-version
+vendor/
+.bundle/
+
+# AWS CDK specific
+aws/cdk/node_modules/
+aws/cdk/cdk.out/
+aws/cdk/cdk.context.json
+aws/lambda/vendor/
+
+# AWS Lambda Layer
+aws/lambda/vendor/
