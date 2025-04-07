@@ -14,6 +14,11 @@ class MessageHandler
     user_id = event.dig('source', 'userId')
     message = event.dig('message', 'text')
     
+    puts "========== Message Details =========="
+    puts "user_id: #{user_id}"
+    puts "message: #{message}"
+    puts "===================================="
+    
     return unless user_id && message
 
     # 如果是測試指令，轉給 test_handler 處理
@@ -22,6 +27,11 @@ class MessageHandler
     end
 
     state = get_state(user_id)
+
+    puts "========== State Details ==========="
+    puts "State: #{state.to_json}"
+    puts "===================================="
+    
     response = process_message(message, state)
     save_state(user_id, state)
 
@@ -89,43 +99,40 @@ class MessageHandler
     if message == '幫我算分數' || !state['form']['waitingFor']
       state['form'] = {
         'params' => {},
-        'waitingFor' => FIELDS[0].key
+        'waitingFor' => Fields::FIELDS[0].key
       }
-      return FIELDS[0].prompt
+      return Fields::FIELDS[0].prompt
     end
 
     # 處理修改請求
-    field_update_validator = /^修改.+/
-    if field_update_validator.match?(message)
-      field = FIELDS.find { |f| "修改#{f.name}" == message }
-      if field
-        state['form']['params'].delete(field.key)
-        state['form']['waitingFor'] = field.key
-        return field.prompt
-      end
+    field = Fields::FIELDS.find { |f| f.name == message }
+    if field
+      state['form']['params'].delete(field.key)
+      state['form']['waitingFor'] = field.key
+      return field.prompt
     end
-
+    
     # 處理修改房子的特殊請求
     if message == '修改房子'
       state['form']['params'].delete('roomStyle')
       state['form']['params'].delete('room')
       state['form']['waitingFor'] = 'roomStyle'
-      return FIELDS.find { |f| f.key == 'roomStyle' }.prompt
+      return Fields::FIELDS.find { |f| f.key == 'roomStyle' }.prompt
     end
 
     # 處理當前問題的答案
-    current_field = FIELDS.find { |f| f.key == state['form']['waitingFor'] }
+    current_field = Fields::FIELDS.find { |f| f.key == state['form']['waitingFor'] }
     if current_field&.validate(message)
       # 儲存答案
       state['form']['params'][current_field.key] = message
 
       # 如果所有欄位都已填寫，顯示結果
-      if state['form']['params'].keys.length == FIELDS.length
+      if state['form']['params'].keys.length == Fields::FIELDS.length
         return Calculator.calculate_result(state['form']['params'])
       end
 
       # 找到下一個未填寫的欄位
-      next_field = FIELDS.find { |f| !state['form']['params'][f.key] }
+      next_field = Fields::FIELDS.find { |f| !state['form']['params'][f.key] }
       if next_field
         state['form']['waitingFor'] = next_field.key
         return next_field.prompt
