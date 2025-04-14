@@ -27,6 +27,7 @@ class MessageHandler
     end
 
     state = get_state(user_id)
+    state['userId'] = user_id unless state['userId']
 
     puts "========== State Details ==========="
     puts "State: #{state.to_json}"
@@ -84,16 +85,50 @@ class MessageHandler
         'sessionId' => 'current',
         'state' => state.to_json,
         'updatedAt' => Time.now.to_i,
-        'expiresAt' => Time.now.to_i + 24 * 60 * 60  # 24 hours TTL
+        'expiresAt' => Time.now.to_i + 24 * 60 * 60,  # 24 hours TTL
+        'type' => 'TEMP'
       }
     })
   rescue Aws::DynamoDB::Errors::ServiceError => e
     puts "DynamoDB Error: #{e.message}"
   end
 
+  def save_score(user_id, state)
+    @dynamodb_client.put_item({
+      table_name: @table_name,
+      item: {
+        'userId' => user_id,
+        'sessionId' => Time.now.to_i.to_s,
+        'state' => state.to_json,
+        'updatedAt' => Time.now.to_i,
+        'expiresAt' => nil,
+        'type' => 'SAVED'
+      }
+    })
+
+    state['form'] = {
+      'params' => {},
+      'waitingFor' => Fields::FIELDS[0].key
+    }
+
+    { success: true, message: '分數已成功保存' }
+  rescue Aws::DynamoDB::Errors::ServiceError => e
+    puts "DynamoDB Error: #{e.message}"
+    { success: false, message: '保存分數時發生錯誤' }
+  end
+
   def process_message(message, state)
     # 處理歡迎訊息
     return greeting if message == '歡迎' || message == 'help'
+
+    # 處理保存分數
+    if message == '保存此分數'
+      result = save_score(state['userId'], state)
+      return {
+        type: 'text',
+        text: result[:message]
+      }
+    end
 
     # 處理開始計分
     if message == '幫我算分數' || !state['form']['waitingFor']

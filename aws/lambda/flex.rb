@@ -169,6 +169,16 @@ class Flex
             },
             {
               type: 'button',
+              style: 'primary',
+              color: '#2C7BB6',
+              action: {
+                type: 'message',
+                label: '保存此分數',
+                text: '保存此分數'
+              }
+            },
+            {
+              type: 'button',
               style: 'secondary',
               action: {
                 type: 'message',
