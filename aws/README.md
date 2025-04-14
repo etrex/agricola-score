@@ -96,3 +96,43 @@
 ## 授權
 
 MIT License
+
+
+
+## 本機測試
+
+```
+sam build
+sam local start-api --env-vars env.json --docker-network host
+```
+
+```
+curl -X POST \
+  http://localhost:3000/webhook \
+  -H "Content-Type: application/json" \
+  -H "x-line-signature: local-signature" \
+  -d '{
+    "events": [
+      {
+        "type": "message",
+        "replyToken": "test-reply-token",
+        "source": {
+          "userId": "test-user-id",
+          "type": "user"
+        },
+        "timestamp": 1612345678901,
+        "message": {
+          "type": "text",
+          "id": "test-message-id",
+          "text": "1"
+        }
+      }
+    ]
+  }'
+```
+
+## 雲端測試
+
+```
+sam sync --stack-name agricola-score --watch
+```

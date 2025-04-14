@@ -1,0 +1,232 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 2048
+    Runtime: ruby3.3
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        DYNAMODB_TABLE: agricola-score
+        LINE_CHANNEL_SECRET: local-dev
+        LINE_CHANNEL_ACCESS_TOKEN: local-dev
+  Api:
+    Cors:
+      AllowMethods: "'*'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+    AccessLogSetting:
+      DestinationArn: !GetAtt ApiGatewayAccessLogs.Arn
+      Format: >-
+        {
+          "requestId":"$context.requestId",
+          "ip": "$context.identity.sourceIp",
+          "caller":"$context.identity.caller",
+          "user":"$context.identity.user",
+          "requestTime":"$context.requestTime",
+          "httpMethod":"$context.httpMethod",
+          "resourcePath":"$context.resourcePath",
+          "status":"$context.status",
+          "protocol":"$context.protocol",
+          "responseLength":"$context.responseLength"
+        }
+
+Resources:
+  WebhookFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: agricola-score-webhook-handler
+      CodeUri: lambda/
+      Handler: app.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: agricola-score
+      LoggingConfig:
+        LogGroup: !Ref WebhookFunctionLogGroup
+      Events:
+        WebhookAPI:
+          Type: Api
+          Properties:
+            Path: /webhook
+            Method: post
+            RestApiId: !Ref ApiGateway
+
+  WebhookFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${WebhookFunction}
+      RetentionInDays: 14
+
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: agricola-score-api
+      StageName: Prod
+      EndpointConfiguration: REGIONAL
+      TracingEnabled: true
+
+  ApiGatewayAccessLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: agricola-score-api-logs
+      RetentionInDays: 14
+
+  AgricolaScoreTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: agricola-score
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: sessionId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: N
+        - AttributeName: type
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: sessionId
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: UserScoreIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: SavedScoreIndex
+          KeySchema:
+            - AttributeName: type
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+
+  DynamoDBThrottlesGetItemAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: DynamoDB has throttled GetItem requests
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: Operation
+          Value: GetItem
+        - Name: TableName
+          Value: !Ref AgricolaScoreTable
+      EvaluationPeriods: 1
+      MetricName: ThrottledRequests
+      Namespace: AWS/DynamoDB
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  DynamoDBThrottlesPutItemAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: DynamoDB has throttled PutItem requests
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: Operation
+          Value: PutItem
+        - Name: TableName
+          Value: !Ref AgricolaScoreTable
+      EvaluationPeriods: 1
+      MetricName: ThrottledRequests
+      Namespace: AWS/DynamoDB
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  DynamoDBThrottlesQueryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: DynamoDB has throttled Query requests
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: Operation
+          Value: Query
+        - Name: TableName
+          Value: !Ref AgricolaScoreTable
+      EvaluationPeriods: 1
+      MetricName: ThrottledRequests
+      Namespace: AWS/DynamoDB
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  DynamoDBThrottlesScanAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: DynamoDB has throttled Scan requests
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: Operation
+          Value: Scan
+        - Name: TableName
+          Value: !Ref AgricolaScoreTable
+      EvaluationPeriods: 1
+      MetricName: ThrottledRequests
+      Namespace: AWS/DynamoDB
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  DynamoDBThrottlesUpdateItemAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: DynamoDB has throttled UpdateItem requests
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: Operation
+          Value: UpdateItem
+        - Name: TableName
+          Value: !Ref AgricolaScoreTable
+      EvaluationPeriods: 1
+      MetricName: ThrottledRequests
+      Namespace: AWS/DynamoDB
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  DynamoDBThrottlesDeleteItemAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: DynamoDB has throttled DeleteItem requests
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: Operation
+          Value: DeleteItem
+        - Name: TableName
+          Value: !Ref AgricolaScoreTable
+      EvaluationPeriods: 1
+      MetricName: ThrottledRequests
+      Namespace: AWS/DynamoDB
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+Outputs:
+  WebhookApi:
+    Description: API Gateway endpoint URL for Prod stage
+    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/webhook
