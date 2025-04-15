@@ -13,12 +13,7 @@ class MessageHandler
   def handle_message(event)
     user_id = event.dig('source', 'userId')
     message = event.dig('message', 'text')
-    
-    puts "========== Message Details =========="
-    puts "user_id: #{user_id}"
-    puts "message: #{message}"
-    puts "===================================="
-    
+
     return unless user_id && message
 
     # 如果是測試指令，轉給 test_handler 處理
@@ -29,32 +24,16 @@ class MessageHandler
     state = get_state(user_id)
     state['userId'] = user_id unless state['userId']
 
-    puts "========== State Details ==========="
-    puts "State: #{state.to_json}"
-    puts "===================================="
-    
     response = process_message(message, state)
     save_state(user_id, state)
 
-    puts "========== Response Details =========="
-    puts "Response: #{response.to_json}"
-    puts "====================================="
-
     begin
-      puts "========== Sending Response =========="
       @line_client.reply_message(event['replyToken'], response)
-      puts "========== Response Sent ==========="
     rescue Line::Bot::API::Error => e
       puts "LINE API Error: #{e.message}"
-      puts "Error Class: #{e.class}"
-      puts "Error Response: #{e.response}"
-      puts "Error Response Body: #{e.response.body}" if e.response
       raise
     rescue StandardError => e
       puts "Unexpected Error: #{e.message}"
-      puts "Error Class: #{e.class}"
-      puts "Backtrace:"
-      puts e.backtrace
       raise
     end
   end
