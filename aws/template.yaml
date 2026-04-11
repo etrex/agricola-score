@@ -11,28 +11,8 @@ Globals:
     Environment:
       Variables:
         DYNAMODB_TABLE: agricola-score
-        LINE_CHANNEL_SECRET: local-dev
-        LINE_CHANNEL_ACCESS_TOKEN: local-dev
-  Api:
-    Cors:
-      AllowMethods: "'*'"
-      AllowHeaders: "'*'"
-      AllowOrigin: "'*'"
-    AccessLogSetting:
-      DestinationArn: !GetAtt ApiGatewayAccessLogs.Arn
-      Format: >-
-        {
-          "requestId":"$context.requestId",
-          "ip": "$context.identity.sourceIp",
-          "caller":"$context.identity.caller",
-          "user":"$context.identity.user",
-          "requestTime":"$context.requestTime",
-          "httpMethod":"$context.httpMethod",
-          "resourcePath":"$context.resourcePath",
-          "status":"$context.status",
-          "protocol":"$context.protocol",
-          "responseLength":"$context.responseLength"
-        }
+        LINE_CHANNEL_SECRET_NAME: /agricola-score/line-channel-secret
+        LINE_CHANNEL_ACCESS_TOKEN_NAME: /agricola-score/line-channel-access-token
 
 Resources:
   WebhookFunction:
@@ -44,34 +24,17 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: agricola-score
+        - SSMParameterReadPolicy:
+            ParameterName: agricola-score/*
       LoggingConfig:
         LogGroup: !Ref WebhookFunctionLogGroup
-      Events:
-        WebhookAPI:
-          Type: Api
-          Properties:
-            Path: /webhook
-            Method: post
-            RestApiId: !Ref ApiGateway
+      FunctionUrlConfig:
+        AuthType: NONE
 
   WebhookFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${WebhookFunction}
-      RetentionInDays: 14
-
-  ApiGateway:
-    Type: AWS::Serverless::Api
-    Properties:
-      Name: agricola-score-api
-      StageName: Prod
-      EndpointConfiguration: REGIONAL
-      TracingEnabled: true
-
-  ApiGatewayAccessLogs:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: agricola-score-api-logs
       RetentionInDays: 14
 
   AgricolaScoreTable:
@@ -117,7 +80,8 @@ Resources:
         Enabled: true
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
+
 Outputs:
-  WebhookApi:
-    Description: API Gateway endpoint URL for Prod stage
-    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/webhook
+  WebhookFunctionUrl:
+    Description: Lambda Function URL for LINE Webhook
+    Value: !GetAtt WebhookFunctionUrl.FunctionUrl

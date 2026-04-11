@@ -37,22 +37,18 @@ npx cdk deploy $STACK_NAME \
 
 if [ $? -eq 0 ]; then
   echo "✅ Deployment completed successfully!"
-  
+
   # 顯示輸出資訊
-  echo "Stack outputs:"
-  cat "$SCRIPT_DIR/cdk/outputs.json"
+  if [ -f "$SCRIPT_DIR/cdk/outputs.json" ]; then
+    echo "Stack outputs:"
+    cat "$SCRIPT_DIR/cdk/outputs.json"
+  fi
 
-  # 等待 API Gateway 部署完成
-  echo "Waiting for API Gateway deployment..."
-  sleep 10
-
-  # 取得 API Gateway URL
-  API_ID=$(aws apigateway get-rest-apis --query "items[?name=='Agricola Score API'].id" --output text)
-  if [ -n "$API_ID" ]; then
-    REGION=$(aws configure get region)
-    WEBHOOK_URL="https://${API_ID}.execute-api.${REGION}.amazonaws.com/prod/webhook"
+  # 取得 Function URL
+  FUNCTION_URL=$(aws lambda get-function-url-config --function-name agricola-score-webhook-handler --query 'FunctionUrl' --output text 2>/dev/null)
+  if [ -n "$FUNCTION_URL" ]; then
     echo
-    echo "LINE Bot Webhook URL: $WEBHOOK_URL"
+    echo "LINE Bot Webhook URL: $FUNCTION_URL"
     echo "請將此 URL 設定到 LINE Developers Console 的 Webhook URL 欄位"
   fi
 
