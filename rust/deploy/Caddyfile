@@ -1,0 +1,16 @@
+# webhook 網址：https://agricola-bot.kamigo.tw/webhook
+# （35-233-180-249.sslip.io 為上線初期使用的備用網址，確認不再需要後可移除）
+# 介紹頁（agricola.kamigo.tw）由 GitHub Pages 提供，不在這台 VM 上。
+agricola-bot.kamigo.tw, 35-233-180-249.sslip.io {
+	encode gzip
+
+	handle /webhook {
+		reverse_proxy 127.0.0.1:8080
+	}
+	handle /healthz {
+		reverse_proxy 127.0.0.1:8080
+	}
+	handle {
+		respond "Not Found" 404
+	}
+}
