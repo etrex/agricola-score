@@ -1,0 +1,30 @@
+[Unit]
+Description=Agricola Score LINE bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=agricola
+Group=agricola
+EnvironmentFile=/etc/agricola-score/env
+Environment=DB_PATH=/var/lib/agricola-score/agricola.db
+Environment=BIND_ADDR=127.0.0.1:8080
+ExecStart=/usr/local/bin/agricola-score serve
+Restart=always
+RestartSec=2
+StateDirectory=agricola-score
+StateDirectoryMode=0750
+
+# 沙箱
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=300M
+
+[Install]
+WantedBy=multi-user.target
