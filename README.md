@@ -79,12 +79,12 @@ docker run --rm --platform linux/amd64 \
 # 產出：target-linux-amd64/release/agricola-score
 ```
 
-VM 只開放 80/443；SSH 只能經由 Google IAP：
+VM 名稱是 `rust-micro-apps`（放小型低流量 Rust 專案的共用機，2026-11-15 由 `agricola-score` 改名；磁碟與固定 IP 的資源名仍是 `agricola-score`）。只開放 80/443；SSH 只能經由 Google IAP：
 
 ```sh
 gcloud compute scp --tunnel-through-iap --zone=us-west1-b --project=etrex-claude \
-  target-linux-amd64/release/agricola-score agricola-score:~/agricola-score.bin
-gcloud compute ssh --tunnel-through-iap --zone=us-west1-b --project=etrex-claude agricola-score \
+  target-linux-amd64/release/agricola-score rust-micro-apps:~/agricola-score.bin
+gcloud compute ssh --tunnel-through-iap --zone=us-west1-b --project=etrex-claude rust-micro-apps \
   --command='sudo install -m 755 ~/agricola-score.bin /usr/local/bin/agricola-score && sudo systemctl restart agricola-score'
 ```
 
