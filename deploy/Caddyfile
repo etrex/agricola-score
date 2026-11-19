@@ -4,6 +4,7 @@
 #     :8089 agricola-bot.kamigo.tw、airport-bot.kamigo.tw(本檔)
 # 架構說明:kadenki repo docs/architecture.md「同機服務」。舊的靜態 IP + 自動 HTTPS 設定備份在 Caddyfile.bak-20261119-tunnel
 # agricola 的 webhook 網址:https://agricola-bot.kamigo.tw/webhook;介紹頁(agricola.kamigo.tw)由 GitHub Pages 提供,不在這台 VM 上。
+# trusted_proxies:cloudflared 帶來的 X-Forwarded-For(訪客真實 IP)原樣轉給後端,不改成 127.0.0.1。
 # airport-gogo(Rust 主服務 airport-gogo.service)全部路徑都由 Rust 處理(LIFF、後台、靜態檔、/line、/line/driver)。
 :8089 {
 	bind 127.0.0.1
@@ -17,10 +18,14 @@
 	@agricola host agricola-bot.kamigo.tw
 	handle @agricola {
 		handle /webhook {
-			reverse_proxy 127.0.0.1:8080
+			reverse_proxy 127.0.0.1:8080 {
+				trusted_proxies 127.0.0.1/32
+			}
 		}
 		handle /healthz {
-			reverse_proxy 127.0.0.1:8080
+			reverse_proxy 127.0.0.1:8080 {
+				trusted_proxies 127.0.0.1/32
+			}
 		}
 		handle {
 			respond "Not Found" 404
@@ -30,6 +35,7 @@
 	@airport host airport-bot.kamigo.tw
 	handle @airport {
 		reverse_proxy 127.0.0.1:8081 {
+			trusted_proxies 127.0.0.1/32
 			lb_try_duration 8s
 			lb_try_interval 200ms
 		}
