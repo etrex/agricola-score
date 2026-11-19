@@ -1,16 +1,44 @@
-# webhook 網址：https://agricola-bot.kamigo.tw/webhook
-# （35-233-180-249.sslip.io 為上線初期使用的備用網址，確認不再需要後可移除）
-# 介紹頁（agricola.kamigo.tw）由 GitHub Pages 提供，不在這台 VM 上。
-agricola-bot.kamigo.tw, 35-233-180-249.sslip.io {
+# rust-micro-apps 的 Caddy(2026-11-19 起全部經 Cloudflare Tunnel,這台機器不對外開 80/443)
+#   cloudflared(/etc/cloudflared/config.yml,tunnel「kadenki」)→
+#     :8088 家電記(/etc/caddy/Caddyfile.kadenki,來源在 kadenki repo rust/deploy/)
+#     :8089 agricola-bot.kamigo.tw、airport-bot.kamigo.tw(本檔)
+# 架構說明:kadenki repo docs/architecture.md「同機服務」。舊的靜態 IP + 自動 HTTPS 設定備份在 Caddyfile.bak-20261119-tunnel
+# agricola 的 webhook 網址:https://agricola-bot.kamigo.tw/webhook;介紹頁(agricola.kamigo.tw)由 GitHub Pages 提供,不在這台 VM 上。
+# airport-gogo(Rust 主服務 airport-gogo.service)全部路徑都由 Rust 處理(LIFF、後台、靜態檔、/line、/line/driver)。
+:8089 {
+	bind 127.0.0.1
 	encode gzip
+	# 存取紀錄(journald,與原本 airport 相同:方法、路徑、狀態碼,不記本文)
+	log {
+		output stdout
+		format json
+	}
 
-	handle /webhook {
-		reverse_proxy 127.0.0.1:8080
+	@agricola host agricola-bot.kamigo.tw
+	handle @agricola {
+		handle /webhook {
+			reverse_proxy 127.0.0.1:8080
+		}
+		handle /healthz {
+			reverse_proxy 127.0.0.1:8080
+		}
+		handle {
+			respond "Not Found" 404
+		}
 	}
-	handle /healthz {
-		reverse_proxy 127.0.0.1:8080
+
+	@airport host airport-bot.kamigo.tw
+	handle @airport {
+		reverse_proxy 127.0.0.1:8081 {
+			lb_try_duration 8s
+			lb_try_interval 200ms
+		}
 	}
+
 	handle {
 		respond "Not Found" 404
 	}
 }
+
+# 家電記(只聽本機,經 Cloudflare Tunnel)
+import /etc/caddy/Caddyfile.kadenki
